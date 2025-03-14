@@ -36,7 +36,7 @@
       const chunk = coordinatePairs.slice(i, i + CHUNK_SIZE)
       const sources = chunk.map((_, index) => index * 2).join(";")
       const destinations = chunk.map((_, index) => index * 2 + 1).join(";")
-      const query = `http://router.project-osrm.org/table/v1/driving/${chunk.join(";")}?sources=${sources}&destinations=${destinations}&annotations=distance`
+      const query = `https://router.project-osrm.org/table/v1/driving/${chunk.join(";")}?sources=${sources}&destinations=${destinations}&annotations=distance`
       const response = await fetch(query)
       const result = await response.json()
       if (result.distances) {
@@ -315,8 +315,9 @@
       </li>
     </ul>
     <p class="mt-6">
-      Abseits der oben genannten übermittlung and die APIs werden keine Daten gespeichert oder an '{window
-        .location.href}' übermittelt, sondern ausschließlich lokal im Browser verarbeitet.
+      Abseits der oben genannten Daten-Übermittlung and die APIs, werden keine Daten gespeichert
+      oder an '{window.location.href}' übermittelt, sondern ausschließlich lokal im Browser
+      verarbeitet.
     </p>
   </footer>
 
