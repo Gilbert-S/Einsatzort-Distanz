@@ -55,9 +55,9 @@
     for (let i = 0; i < dataInput.length; i++) {
       const row = dataInput[i]
 
-      if (row.plzWohnort && row.plzWohnort) {
-        const wohnortQuery = `${row.plzWohnort} ${row.plzWohnort}`
-        const wohnortResult = await fetchFromCacheOrApi(wohnortQuery)
+      const wohnortQuery = `${row.plzWohnort ?? ""} ${row.nameWohnort ?? ""} ${row.strasseWohnort ?? ""} ${row.zusatzWohnort ?? ""}`
+      if (wohnortQuery.trim() !== "") {
+        const wohnortResult = await fetchFromCacheOrApi(wohnortQuery.trim())
         if (wohnortResult.length > 0) {
           dataInput[i] = {
             ...row,
@@ -73,9 +73,9 @@
 
       if (row.einsatzortId) {
         const einsatzortParts = row.einsatzortId.split(" - ")
-        einsatzortParts.shift()
-        const einsatzortQuery = einsatzortParts.join(",")
-        const einsatzortResult = await fetchFromCacheOrApi(einsatzortQuery)
+        const einsatzortResult = await fetchFromCacheOrApi(
+          `${einsatzortParts[1] ?? ""} ${einsatzortParts[2] ?? ""}`
+        )
         if (einsatzortResult.length > 0) {
           dataInput[i] = {
             ...dataInput[i],
@@ -147,6 +147,37 @@
     }
   }
 
+  function copyToClipboard(text: string) {
+    navigator.clipboard.writeText(text).then(() => {
+      console.log("Text copied to clipboard")
+    })
+  }
+
+  function copyTable() {
+    const tableData = dataInput.map((row) => {
+      let output = `${row.einsatzortId}\t${row.plzWohnort}`
+      if (row.nameWohnort) {
+        output += `\t${row.nameWohnort}`
+      }
+      if (row.strasseWohnort) {
+        output += `\t${row.strasseWohnort}`
+      }
+      if (row.zusatzWohnort) {
+        output += `\t${row.zusatzWohnort}`
+      }
+      output += `\t${row.entfernungKilometer}`
+      return output
+    })
+    const textToCopy = tableData.join("\n")
+    copyToClipboard(textToCopy)
+  }
+
+  function copyDistanceColumn() {
+    const distanceData = dataInput.map((row) => row.entfernungKilometer)
+    const textToCopy = distanceData.join("\n")
+    copyToClipboard(textToCopy)
+  }
+
   let cacheEntries = $derived(Object.keys(cache).length)
 </script>
 
@@ -163,7 +194,7 @@
   <div class="mb-4 flex items-center justify-between">
     <button
       onclick={getCoordinates}
-      class="flex items-center rounded bg-sky-600 px-4 py-2 text-white"
+      class="flex cursor-pointer items-center rounded bg-sky-600 px-4 py-2 text-white hover:bg-sky-500"
     >
       starte Koordinaten & Distanz Abfrage
       {#if isLoading}
@@ -183,6 +214,16 @@
         </svg>
       {/if}
     </button>
+    <button
+      class="cursor-pointer rounded border border-neutral-400 px-4 py-2 disabled:cursor-not-allowed dark:border-neutral-600"
+      disabled={isLoading}
+      onclick={copyTable}>Tabelle kopieren</button
+    >
+    <button
+      class="cursor-pointer rounded border border-neutral-400 px-4 py-2 disabled:cursor-not-allowed dark:border-neutral-600"
+      disabled={isLoading}
+      onclick={copyDistanceColumn}>Nur Entfernungs Spalte kopieren</button
+    >
     <div class="text-right text-sm text-neutral-600 dark:text-neutral-400">
       zwischengespeicherte eindeutige Koordinaten: {cacheEntries}
     </div>
@@ -190,11 +231,10 @@
   <div class="relative overflow-hidden rounded shadow-md">
     <table class="min-w-full border-collapse">
       <thead class="bg-neutral-300 dark:bg-neutral-800">
-        <tr class="text-left text-xs font-medium uppercase text-neutral-500 dark:text-neutral-400">
-          <th class="px-3 py-3 tracking-wider">Einsatzort-ID</th>
-          <th class="px-3 py-3 tracking-wider">PLZ Wohnort</th>
-          <th class="px-3 py-3 tracking-wider">Name Wohnort</th>
-          <th class="px-3 py-3 tracking-wider">Entfernung Kilometer</th>
+        <tr class="text-left text-xs font-medium text-neutral-500 uppercase dark:text-neutral-400">
+          <th class="px-3 py-3 tracking-wider">Einsatzort</th>
+          <th class="px-3 py-3 tracking-wider">Wohnort</th>
+          <th class="w-40 px-3 py-3 tracking-wider">Entfernung (km)</th>
         </tr>
       </thead>
       <tbody class="divide-none">
@@ -204,7 +244,7 @@
               odd:dark:bg-neutral-700/50 even:dark:bg-neutral-700/90"
           >
             <td
-              class="relative whitespace-nowrap px-6 py-4 text-sm font-medium
+              class="relative cursor-pointer px-6 py-4 text-sm font-medium whitespace-nowrap
                 {row.queriedEinsatzort
                 ? row.einsatzLat && row.einsatzLon
                   ? 'indicator-green'
@@ -217,15 +257,7 @@
               {row.einsatzortId}
             </td>
             <td
-              class="relative whitespace-nowrap px-6 py-4 text-sm"
-              onmouseenter={(event) => showTooltip(event, row, "wohnort")}
-              onmouseleave={hideTooltip}
-              onclick={() => openDirections(row.lat, row.lon)}
-            >
-              {row.plzWohnort}
-            </td>
-            <td
-              class="relative whitespace-nowrap px-6 py-4 text-sm
+              class="relative cursor-pointer px-6 py-4 text-sm whitespace-nowrap
                 {row.queriedWohnort
                 ? row.lat && row.lon
                   ? 'indicator-green'
@@ -235,9 +267,15 @@
               onmouseleave={hideTooltip}
               onclick={() => openDirections(row.lat, row.lon)}
             >
-              {row.nameWohnort}
+              {row.plzWohnort}&#9;
+              {row.nameWohnort}&#9;
+              {row.strasseWohnort}&#9;
+              {row.zusatzWohnort}
             </td>
-            <td class="relative whitespace-nowrap px-6 py-4 text-sm" onclick={() => openMap(row)}>
+            <td
+              class="relative cursor-pointer px-6 py-4 text-sm whitespace-nowrap"
+              onclick={() => openMap(row)}
+            >
               {row.entfernungKilometer}
             </td>
           </tr>
@@ -247,7 +285,7 @@
   </div>
 
   <footer
-    class="mt-14 min-w-64 max-w-screen-sm rounded bg-neutral-100 p-4 text-sm text-neutral-600 shadow-md dark:bg-neutral-800 dark:text-neutral-400"
+    class="mt-14 max-w-screen-sm min-w-64 rounded bg-neutral-100 p-4 text-sm text-neutral-600 shadow-md dark:bg-neutral-800 dark:text-neutral-400"
   >
     <p class="mb-2">
       Dieses Tool fragt die OpenStreetMap Nominatim API nach Koordinaten basierend auf geschriebenen
@@ -276,12 +314,16 @@
         </a>
       </li>
     </ul>
+    <p class="mt-6">
+      Abseits der oben genannten übermittlung and die APIs werden keine Daten gespeichert oder an '{window
+        .location.href}' übermittelt, sondern ausschließlich lokal im Browser verarbeitet.
+    </p>
   </footer>
 
   {#if tooltipVisible && tooltipContent}
     <div
-      class="fixed z-50 max-w-xs rounded bg-black bg-opacity-80 p-2 text-white dark:bg-white
-			dark:bg-opacity-80 dark:text-black"
+      class="bg-opacity-80 dark:bg-opacity-80 fixed z-50 max-w-xs rounded bg-black p-2 text-white
+			dark:bg-white dark:text-black"
       style="top: {tooltipY}px; left: {tooltipX}px;"
     >
       {#if tooltipContent.type === "einsatzort" && tooltipContent.einsatzLat && tooltipContent.einsatzLon}

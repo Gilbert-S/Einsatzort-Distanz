@@ -3,6 +3,8 @@
     einsatzortId: string
     plzWohnort: string
     nameWohnort: string
+    strasseWohnort: string
+    zusatzWohnort: string
     entfernungKilometer: string
     lat?: string
     lon?: string
@@ -26,8 +28,15 @@
   $effect(() => {
     const rows = textAreaValue.split("\n")
     dataInput = rows.map((row) => {
-      const [einsatzortId, plzWohnort, nameWohnort] = row.split("\t")
-      return { einsatzortId, plzWohnort, nameWohnort, entfernungKilometer: "" }
+      const [einsatzortId, plzWohnort, nameWohnort, strasseWohnort, zusatzWohnort] = row.split("\t")
+      return {
+        einsatzortId,
+        plzWohnort,
+        nameWohnort,
+        strasseWohnort,
+        zusatzWohnort,
+        entfernungKilometer: ""
+      }
     })
   })
 </script>
@@ -36,6 +45,6 @@
   bind:value={textAreaValue}
   rows="10"
   placeholder="Fügen Sie Ihre Daten hier ein..."
-  class="mb-4 w-full rounded border bg-neutral-100 bg-opacity-30 p-2 text-neutral-900
-    dark:bg-neutral-700 dark:bg-opacity-30 dark:text-neutral-300"
+  class="bg-opacity-30 dark:bg-opacity-30 mb-4 w-full rounded border bg-neutral-100 p-2
+    text-neutral-900 dark:bg-neutral-700 dark:text-neutral-300"
 ></textarea>
