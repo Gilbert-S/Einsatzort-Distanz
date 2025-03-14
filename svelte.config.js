@@ -15,7 +15,7 @@ const config = {
       entries: []
     },
     paths: {
-      base: process.argv.includes('BASE_PATH') ? process.env.BASE_PATH : ''
+      base: process.env.BASE_PATH ? '/' + process.env.BASE_PATH : ''
     }
   }
 }
