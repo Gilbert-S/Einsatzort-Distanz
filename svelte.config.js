@@ -13,6 +13,9 @@ const config = {
     }),
     prerender: {
       entries: []
+    },
+    paths: {
+      base: process.argv.includes('BASE_PATH') ? process.env.BASE_PATH : ''
     }
   }
 }
