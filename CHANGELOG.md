@@ -1,6 +1,9 @@
 # Changelog
 
 
+## [0.1.3] - 2025-12-17
+- Hinzugefügt: Abfrage und Anzeige einer neuen Dauer Spalte (Fahrzeit)
+
 ## [0.1.2] - 2025-03-14
 - fix: github build BASE_PATH
 - fix: vershentliches mixed-content der OSMR API Url

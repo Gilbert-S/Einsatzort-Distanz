@@ -6,6 +6,7 @@
     strasseWohnort: string
     zusatzWohnort: string
     entfernungKilometer: string
+    dauer: string
     lat?: string
     lon?: string
     displayName?: string
@@ -35,7 +36,8 @@
         nameWohnort,
         strasseWohnort,
         zusatzWohnort,
-        entfernungKilometer: ""
+        entfernungKilometer: "",
+        dauer: ""
       }
     })
   })

@@ -30,21 +30,21 @@
     return result
   }
 
-  async function fetchDistances(coordinatePairs: string[]) {
-    const results = []
+  async function fetchDistancesAndDuration(coordinatePairs: string[]) {
+    const distances = []
+    const durations = []
     for (let i = 0; i < coordinatePairs.length; i += CHUNK_SIZE) {
       const chunk = coordinatePairs.slice(i, i + CHUNK_SIZE)
       const sources = chunk.map((_, index) => index * 2).join(";")
       const destinations = chunk.map((_, index) => index * 2 + 1).join(";")
-      const query = `https://router.project-osrm.org/table/v1/driving/${chunk.join(";")}?sources=${sources}&destinations=${destinations}&annotations=distance`
+      const query = `https://router.project-osrm.org/table/v1/driving/${chunk.join(";")}?sources=${sources}&destinations=${destinations}&annotations=duration,distance`
       const response = await fetch(query)
       const result = await response.json()
-      if (result.distances) {
-        results.push(...result.distances)
-      }
+      if (result.distances) distances.push(...result.distances)
+      if (result.durations) durations.push(...result.durations)
       await new Promise((resolve) => setTimeout(resolve, 1000)) // Wait for 1 second
     }
-    return results
+    return { distances, durations }
   }
 
   async function getCoordinates() {
@@ -103,12 +103,26 @@
     }
 
     if (coordinatePairs.length > 0) {
-      const distances = await fetchDistances(coordinatePairs)
+      const { distances, durations } = await fetchDistancesAndDuration(coordinatePairs)
       if (distances.length > 0) {
         for (let i = 0; i < distances.length; i++) {
           const index = validIndices[i]
           const dist = Number.parseFloat(distances[i][i % CHUNK_SIZE])
           dataInput[index].entfernungKilometer = (dist / 1000).toFixed(1)
+        }
+      }
+
+      if (durations.length > 0) {
+        for (let i = 0; i < durations.length; i++) {
+          const index = validIndices[i]
+          const dur = Number.parseFloat(durations[i][i % CHUNK_SIZE])
+          const hours = Math.floor(dur / 3600)
+            .toString()
+            .padStart(2, "0")
+          const minutes = Math.floor((dur % 3600) / 60)
+            .toString()
+            .padStart(2, "0")
+          dataInput[index].dauer = `${hours}:${minutes}`
         }
       }
     }
@@ -166,6 +180,7 @@
         output += `\t${row.zusatzWohnort}`
       }
       output += `\t${row.entfernungKilometer}`
+      output += `\t${row.dauer}`
       return output
     })
     const textToCopy = tableData.join("\n")
@@ -175,6 +190,12 @@
   function copyDistanceColumn() {
     const distanceData = dataInput.map((row) => row.entfernungKilometer)
     const textToCopy = distanceData.join("\n")
+    copyToClipboard(textToCopy)
+  }
+
+  function copyDurationColumn() {
+    const durationData = dataInput.map((row) => row.dauer)
+    const textToCopy = durationData.join("\n")
     copyToClipboard(textToCopy)
   }
 
@@ -217,15 +238,20 @@
     <button
       class="cursor-pointer rounded border border-neutral-400 px-4 py-2 disabled:cursor-not-allowed dark:border-neutral-600"
       disabled={isLoading}
-      onclick={copyTable}>Tabelle kopieren</button
+      onclick={copyTable}>Gesamte Tabelle kopieren</button
     >
     <button
       class="cursor-pointer rounded border border-neutral-400 px-4 py-2 disabled:cursor-not-allowed dark:border-neutral-600"
       disabled={isLoading}
-      onclick={copyDistanceColumn}>Nur Entfernungs Spalte kopieren</button
+      onclick={copyDistanceColumn}>Entfernungs Spalte kopieren</button
+    >
+    <button
+      class="cursor-pointer rounded border border-neutral-400 px-4 py-2 disabled:cursor-not-allowed dark:border-neutral-600"
+      disabled={isLoading}
+      onclick={copyDurationColumn}>Dauer Spalte kopieren</button
     >
     <div class="text-right text-sm text-neutral-600 dark:text-neutral-400">
-      zwischengespeicherte eindeutige Koordinaten: {cacheEntries}
+      zwischengespeicherte Koordinaten: {cacheEntries}
     </div>
   </div>
   <div class="relative overflow-hidden rounded shadow-md">
@@ -235,6 +261,7 @@
           <th class="px-3 py-3 tracking-wider">Einsatzort</th>
           <th class="px-3 py-3 tracking-wider">Wohnort</th>
           <th class="w-40 px-3 py-3 tracking-wider">Entfernung (km)</th>
+          <th class="w-20 px-3 py-3 tracking-wider">Dauer</th>
         </tr>
       </thead>
       <tbody class="divide-none">
@@ -277,6 +304,9 @@
               onclick={() => openMap(row)}
             >
               {row.entfernungKilometer}
+            </td>
+            <td class="relative px-6 py-4 text-sm whitespace-nowrap">
+              {row.dauer}
             </td>
           </tr>
         {/each}
